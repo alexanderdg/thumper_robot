@@ -5,8 +5,8 @@ from threading import Thread
 
 
 class Motorcontroller:	
-	print "Open serial communication"
-	print "Succeeded to open serial communication"
+	print ("Open serial communication")
+	print ("Succeeded to open serial communication")
 
 	def __init__(self, default=0):
 		self.ser=serial.Serial(port='/dev/ttyUSB0',
@@ -21,14 +21,14 @@ class Motorcontroller:
 		self.my_thread.setDaemon(True)
 		self.my_thread.start()
 		self.print_serial = True		
-		print "init method"
+		print ("init method")
 
 	def close(self):
 		if self.my_thread.is_alive():
 			self.keep_reading = False
 			self.my_thread.join()
 		self.ser.close()
-		print "close motorcontroller"
+		print ("close motorcontroller")
 	
 
 	def print_serial_output(self):
@@ -44,6 +44,7 @@ class Motorcontroller:
                 self.ser.write(data_to_send)
 
 	def forward(self, speed):
+		print("write to forward")
 		data_to_send = "1:{0}\n".format(str(speed))
 		self.ser.write(data_to_send)
 

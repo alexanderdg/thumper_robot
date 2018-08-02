@@ -4,7 +4,7 @@ import sys
 from threading import Thread
 
 HOST = ''
-PORT = 50008
+PORT = 50006
 s = None
 Data = ""
 conn = None
