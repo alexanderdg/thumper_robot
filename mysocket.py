@@ -45,4 +45,3 @@ class Mysocket:
 
 	def getData(self):
 		return self.Data
-	

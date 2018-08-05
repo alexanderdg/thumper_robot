@@ -1,4 +1,5 @@
 from mcp3204 import MCP3208
+import time
 
 class ADC:
 	def __init__(self):
@@ -12,13 +13,17 @@ class ADC:
 		a1 = 0
 		for x in range(0,10):
 			a1 += self.spi.read(1)
-		print "current=%f" % (((a1/10)-1902)/64.3)
+		current = (((a1/10)-1902)/64.3)
+		print "current=%f" % current
+		return current
 
 	def readVoltage(self):
 		a0 = 0
 		for x in range(0,10):
 			a0 += self.spi.read(0)
-		print "voltage=%f" % ((a0/10)/218.66)
+		voltage = ((a0/10)/218.66)
+		print "voltage=%f" % voltage
+		return voltage
 
 	def close(self):
 		if self.conn != None:
@@ -27,5 +32,7 @@ class ADC:
 
 if __name__ == '__main__':
 	ADC_local = ADC()
-	ADC_local.readCurrent()
-	ADC_local.readVoltage()
+	while True:
+		ADC_local.readCurrent()
+		ADC_local.readVoltage()
+		time.sleep(0.010)
