@@ -88,6 +88,14 @@ class Motorcontroller:
 		data_to_send = "11:{0}\n".format(str(compensation))
                 self.ser.write(data_to_send)
 
+	def EmergyStop(self):
+		data_to_send = "12\n"
+		self.ser.write(data_to_send)
+
+	def UnsafeEmergyStop(self):
+		data_to_send = "13\n"
+		self.ser.write(data_to_send)
+
 	def setLoggingOff(self):
 		self.print_serial = False
 

@@ -1,10 +1,10 @@
 # Echo server program
+import sys
 from ADC import ADC
-from RGBled import RGBled
 from motorcontroller import Motorcontroller
+from RGBled import RGBled
 import socket
 import time
-import sys
 import threading
 import json
 
@@ -23,7 +23,10 @@ def receive_worker():
             led.set_red(parsed_json['LEDred'])
             led.set_green(parsed_json['LEDgreen'])
             led.set_blue(parsed_json['LEDblue'])
-            if parsed_json['MotorMode'] == 1:
+            motor.MotorYawComp(parsed_json['MotorYaw'])
+            if parsed_json['MotorMode'] == 0:
+                motor.stop()
+            elif parsed_json['MotorMode'] == 1:
                 motor.forward(parsed_json['MotorSpeed'])
             elif parsed_json['MotorMode'] == 2:
                 motor.reverse(parsed_json['MotorSpeed'])
@@ -31,6 +34,8 @@ def receive_worker():
                 motor.turnLeft(parsed_json['MotorSpeed'])
             elif parsed_json['MotorMode'] == 4:
                 motor.turnRight(parsed_json['MotorSpeed'])
+            elif parsed_json['MotorMode'] == 5:
+                motor.EmergyStop();
             else:
                 motor.stop()
 

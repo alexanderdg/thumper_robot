@@ -1,0 +1,13 @@
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\bin\Debug\GUI thumper.exe.config
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\bin\Debug\GUI thumper.exe
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\bin\Debug\GUI thumper.pdb
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI thumper.csprojAssemblyReference.cache
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI_thumper.Properties.Resources.resources
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI thumper.csproj.GenerateResource.cache
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI thumper.csproj.CoreCompileInputs.cache
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI thumper.exe
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI thumper.pdb
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\bin\Debug\Newtonsoft.Json.dll
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\bin\Debug\Newtonsoft.Json.xml
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI thumper.csproj.CopyComplete
+D:\Drive\Labo\Thumper robot\GUI thumper\GUI thumper\obj\Debug\GUI_thumper.Form1.resources
