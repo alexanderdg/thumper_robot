@@ -15,7 +15,7 @@ class ADC:
 		a1 = 0
 		for x in range(0,10):
 			a1 += self.spi.read(1)
-		current = (((a1/10)-1902)/64.3)
+		current = (((a1/10)-1946)/41.1)
 		#print "current=%f" % current
 		return current
 
@@ -38,8 +38,6 @@ class ADC:
 		else:
 			temp = batteryvoltage - 7.1
 			temp2 = (int)((temp / 1.5) * 100)
-			print temp2
-			print (100 - temp2)
 			self.rgb.set_green(temp2)
 			self.rgb.set_red(100 - temp2)
 

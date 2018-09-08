@@ -7,29 +7,21 @@ class OA:
 	def __init__(self):
 		print ("Creating Obstacle avoidance algoritme")
 		self.mpu = mpu6050(0x68)
-		self.led = RGBled()
-		self.led.set_red(0)
 		self.sensitivity = 10
 
-	def start(self):
-		print ("Starting Obstacle avoidance algoritme")
-		self.thread_run = True
-		self.my_thread = Thread(target=self.algoritme())
-		self.my_thread.setDaemon(True)
-		self.my_thread.start()
+	def setSensitivity(self, sensitivity):
+		self.sensitivity = sensitivity
 
 	def algoritme(self):
-		while self.thread_run:
-			accldata = self.mpu.get_accel_data()
-			xaccl = accldata['x']
-			print xaccl
-			if abs(xaccl) > self.sensitivity:
-				time.sleep(0.03)
-				if xaccl > self.sensitivity:
-					self.led.set_red(100)
-					time.sleep(2)
-					self.led.set_red(0)
-			time.sleep(0.1)
+		accldata = self.mpu.get_accel_data()
+		xaccl = accldata['x']
+		collision = 0
+		if abs(xaccl) > self.sensitivity:
+			time.sleep(0.03)
+			if xaccl > self.sensitivity:
+				collision = 1
+		time.sleep(0.01)
+		return collision
 
 if __name__ == '__main__':
 	oa = OA()
