@@ -7,7 +7,7 @@ from ADC import ADC
 from motorcontroller import Motorcontroller
 from OA import OA
 from Display import Display
-
+#sudo nano /home/pi/.bashrc
 
 lowbatteryvoltage = 7.3
 
@@ -23,7 +23,7 @@ class Serialcom(threading.Thread):
 
 	def run(self):
 		print('Thread #%s started' % self.ident)
-
+		self.motor.timeout(1)
 		while not self.shutdown_flag.is_set():
 			rcvdata = self.ser.readline()
 			if rcvdata != "":
