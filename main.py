@@ -14,12 +14,24 @@ lowbatteryvoltage = 7.3
 keep_reading = 1
 
 
+
 class Serialcom(threading.Thread):
+	cor2 = 0
+	cor1 = 0
 	def __init__(self):
 		threading.Thread.__init__(self)
 		self.shutdown_flag = threading.Event()
 		self.motor = Motorcontroller()
 		self.ser = serial.Serial('/dev/ttyS0', baudrate=115200, timeout=1)  # open serial port
+
+	def calculateReg(self, level):
+		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
+		if (regression >= 0) :
+			self.cor2 = regression
+		else:
+			self.cor1 = -regression
+		return regression;
+
 
 	def run(self):
 		print('Thread #%s started' % self.ident)
@@ -28,23 +40,33 @@ class Serialcom(threading.Thread):
 			rcvdata = self.ser.readline()
 			if rcvdata != "":
 				try:
-					parsed_json = json.loads(rcvdata)
-					self.motor.MotorYawComp(parsed_json['MotorYaw'])
-					if parsed_json['MotorMode'] == 0:
-						self.motor.stop()
-					elif parsed_json['MotorMode'] == 1:
-						self.motor.forward(parsed_json['MotorSpeed'])
-					elif parsed_json['MotorMode'] == 2:
-						self.motor.reverse(parsed_json['MotorSpeed'])
-					elif parsed_json['MotorMode'] == 3:
-						self.motor.turnLeft(parsed_json['MotorSpeed'])
-					elif parsed_json['MotorMode'] == 4:
-						self.motor.turnRight(parsed_json['MotorSpeed'])
-					elif parsed_json['MotorMode'] == 5:
-						self.motor.EmergyStop();
+					temp1, temp2, temp3 = (rcvdata.split(':'))
+					inttemp1 = int(temp1)
+					inttemp2 = int(temp2)
+					if inttemp1 > 250 and inttemp2 > 250:
+						self.motor.Motor1MC2(255 - 0)
+						self.motor.Motor2MC2(255 - 7)
+						#self.calculateReg(255)
+						#print "cor1: {}", format(self.cor1)
+						#print "cor2: {}", format(self.cor2)
+						#print "ride forward"
+					elif (abs(inttemp1 - inttemp2) <= 3) and (inttemp1 > 50):
+						self.calculateReg(inttemp1)
+						self.motor.Motor1MC2(inttemp1 - self.cor1)
+						self.motor.Motor2MC2(inttemp1 - self.cor2)
+						print "drive forward without full speed"
 					else:
-						self.motor.stop()
+						self.motor.Motor1MC2(inttemp1)
+						self.motor.Motor2MC2(inttemp2)
+					#if temp1 == '1':
+					#	self.motor.Motor1MC2(temp2)
 
+
+					#if temp1 == '2':
+					#	self.motor.Motor2MC2(temp2)
+
+					#self.motor.Motor1MC2(55)
+					#self.motor.Motor2MC2(55)
 
 				except ValueError, e:
 					print "JSON type error"
@@ -54,6 +76,40 @@ class Serialcom(threading.Thread):
 		self.ser.close()
 		self.motor.close()
 		print('Thread #%s stopped' % self.ident)
+
+	#def run(self):
+	#	print('Thread #%s started' % self.ident)
+	#	self.motor.timeout(1)
+	#	while not self.shutdown_flag.is_set():
+	#		rcvdata = self.ser.readline()
+	#		if rcvdata != "":
+	#			try:
+	#				parsed_json = json.loads(rcvdata)
+	#				self.motor.MotorYawComp(parsed_json['MotorYaw'])
+	#				if parsed_json['MotorMode'] == 0:
+	#					self.motor.stop()
+	#				elif parsed_json['MotorMode'] == 1:
+	#					self.motor.forward(parsed_json['MotorSpeed'])
+	#				elif parsed_json['MotorMode'] == 2:
+	#					self.motor.reverse(parsed_json['MotorSpeed'])
+	#				elif parsed_json['MotorMode'] == 3:
+	#					self.motor.turnLeft(parsed_json['MotorSpeed'])
+	#				elif parsed_json['MotorMode'] == 4:
+	#					self.motor.turnRight(parsed_json['MotorSpeed'])
+	#				elif parsed_json['MotorMode'] == 5:
+	#					self.motor.EmergyStop();
+	#				else:
+	#					self.motor.stop()
+
+
+	#			except ValueError, e:
+	#				print "JSON type error"
+	#		time.sleep(0.001)
+
+		# ... Clean shutdown code here ...
+	#	self.ser.close()
+	#	self.motor.close()
+	#	print('Thread #%s stopped' % self.ident)
 
 
 class Batterymonitor(threading.Thread):
@@ -72,7 +128,7 @@ class Batterymonitor(threading.Thread):
 			print("Battery current: %.2fA" % batterycurrent)
 			if batteryvoltage < lowbatteryvoltage:
 				print("Low battery !!!!!")
-			time.sleep(10)
+			time.sleep(1)
 
 		# ... Clean shutdown code here ...
 		print('Thread #%s stopped' % self.ident)
