@@ -4,6 +4,7 @@ from threading import Thread
 
 
 
+
 class Motorcontroller:
 	print ("Open serial communication")
 	print ("Succeeded to open serial communication")

@@ -7,6 +7,7 @@ from ADC import ADC
 from motorcontroller import Motorcontroller
 from OA import OA
 from Display import Display
+from Joystick import Joystick
 #sudo nano /home/pi/.bashrc
 
 lowbatteryvoltage = 7.3
@@ -18,11 +19,13 @@ keep_reading = 1
 class Serialcom(threading.Thread):
 	cor2 = 0
 	cor1 = 0
+
 	def __init__(self):
 		threading.Thread.__init__(self)
 		self.shutdown_flag = threading.Event()
 		self.motor = Motorcontroller()
 		self.ser = serial.Serial('/dev/ttyS0', baudrate=115200, timeout=1)  # open serial port
+		self.joycalc = Joystick()
 
 	def calculateReg(self, level):
 		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
@@ -33,6 +36,7 @@ class Serialcom(threading.Thread):
 		return regression;
 
 
+
 	def run(self):
 		print('Thread #%s started' % self.ident)
 		self.motor.timeout(1)
@@ -41,20 +45,24 @@ class Serialcom(threading.Thread):
 			if rcvdata != "":
 				try:
 					temp1, temp2, temp3 = (rcvdata.split(':'))
-					inttemp1 = int(temp1)
-					inttemp2 = int(temp2)
-					if inttemp1 > 250 and inttemp2 > 250:
+					rcv1 = int(temp1)
+					rcv2 = int(temp2)
+					self.joycalc.calculate(rcv1, rcv2)
+					inttemp1 = self.joycalc.getM1()
+					inttemp2 = self.joycalc.getM2()
+					if inttemp1 > 248 and inttemp2 > 248:
 						self.motor.Motor1MC2(255 - 0)
 						self.motor.Motor2MC2(255 - 7)
 						#self.calculateReg(255)
 						#print "cor1: {}", format(self.cor1)
 						#print "cor2: {}", format(self.cor2)
 						#print "ride forward"
+
 					elif (abs(inttemp1 - inttemp2) <= 3) and (inttemp1 > 50):
 						self.calculateReg(inttemp1)
 						self.motor.Motor1MC2(inttemp1 - self.cor1)
 						self.motor.Motor2MC2(inttemp1 - self.cor2)
-						print "drive forward without full speed"
+						#print "drive forward without full speed"
 					else:
 						self.motor.Motor1MC2(inttemp1)
 						self.motor.Motor2MC2(inttemp2)
