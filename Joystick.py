@@ -37,10 +37,10 @@ class Joystick:
 		nMotPremixL = nMotPremixL * nJoyY / 128.0
 		nMotPremixR = nMotPremixR * nJoyY / 128.0
 		nPivSpeed = nJoyX
-		if abs(nJoyY) > 32.0:
+		if abs(nJoyY) > 40.0:
 			fPivScale = 0.0
 		else:
-			fPivScale = (1.0 - abs(nJoyY) / 32.0)
+			fPivScale = (1.0 - abs(nJoyY) / 40.0)
 		nMotMixL = (1.0 - fPivScale) * nMotPremixL + fPivScale * (nPivSpeed)
 		nMotMixR = (1.0 - fPivScale) * nMotPremixR + fPivScale * (-nPivSpeed)
 		snMotMixL = self.valmap(nMotMixL, -128, 127, -255, 255)

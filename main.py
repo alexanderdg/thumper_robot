@@ -30,10 +30,12 @@ class Serialcom(threading.Thread):
 	def calculateReg(self, level):
 		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
 		if (regression >= 0) :
+			self.cor1 = 0
 			self.cor2 = regression
 		else:
 			self.cor1 = -regression
-		return regression;
+			self.cor2 = 0
+		return regression
 
 
 
@@ -44,18 +46,19 @@ class Serialcom(threading.Thread):
 			rcvdata = self.ser.readline()
 			if rcvdata != "":
 				try:
-					temp1, temp2, temp3 = (rcvdata.split(':'))
-					rcv1 = int(temp1)
-					rcv2 = int(temp2)
+					rcvdata_split = (rcvdata.split(':'))
+					print rcvdata_split
+					rcv1 = int(rcvdata_split[0])
+					rcv2 = int(rcvdata_split[1])
 					self.joycalc.calculate(rcv1, rcv2)
 					inttemp1 = self.joycalc.getM1()
 					inttemp2 = self.joycalc.getM2()
 					if inttemp1 > 248 and inttemp2 > 248:
+						self.calculateReg(255)
 						self.motor.Motor1MC2(255 - 0)
 						self.motor.Motor2MC2(255 - 7)
-						#self.calculateReg(255)
-						#print "cor1: {}", format(self.cor1)
-						#print "cor2: {}", format(self.cor2)
+						#print "cor1: {}", format(255 - self.cor1)
+						#print "cor2: {}", format(255 - self.cor2)
 						#print "ride forward"
 
 					elif (abs(inttemp1 - inttemp2) <= 3) and (inttemp1 > 50):
