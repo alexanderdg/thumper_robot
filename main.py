@@ -25,11 +25,13 @@ class Serialcom(threading.Thread):
 		self.shutdown_flag = threading.Event()
 		self.motor = Motorcontroller()
 		self.ser = serial.Serial('/dev/ttyS0', baudrate=115200, timeout=1)  # open serial port
+		self.adc = ADC()
 		self.joycalc = Joystick()
-		self.servo1 = 90
-		self.servo2 = 90
+		self.servo1 = 96
+		self.servo2 = 75
 		self.motor.setServo1(self.servo1)
 		self.motor.setServo2(self.servo2)
+		self.lastSavedTime = 0
 
 	def calculateReg(self, level):
 		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
@@ -48,6 +50,12 @@ class Serialcom(threading.Thread):
 		self.motor.timeout(1)
 		while not self.shutdown_flag.is_set():
 			rcvdata = self.ser.readline()
+			self.motor.recalCommand()
+			currenttime = time.time()
+			if currenttime - self.lastSavedTime > 1.0:
+				self.lastSavedTime = time.time()
+				data_to_send = "1:{0}\n".format(str(self.adc.readVoltage()))
+				self.ser.write(data_to_send)
 			if rcvdata != "":
 				try:
 					rcvdata_split = (rcvdata.split(':'))
@@ -81,7 +89,7 @@ class Serialcom(threading.Thread):
 						#print "other speeds"
 
 					if rcvdata_split[5] == "0":
-						self.servo1 = 90
+						self.servo1 = 96
 						self.motor.setServo1(self.servo1)
 
 					elif rcv3 > 1000:
@@ -94,7 +102,7 @@ class Serialcom(threading.Thread):
 							self.motor.setServo1(self.servo1)
 
 					if rcvdata_split[5] == "0":
-						self.servo2 = 90
+						self.servo2 = 75
 						self.motor.setServo2(self.servo2)
 
 					elif rcv4 > 1000:
