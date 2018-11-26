@@ -12,9 +12,15 @@ bool mode9 = false;
 bool mode10 = false;
 int cor1, cor2;
 Servo servo1, servo2;
-bool timeout = true;
+bool timeout = false;
 unsigned long savedTime = 0;
+static unsigned long lastAccelTime = 0;
 String readString;
+int val1 = 0;
+int val2 = 0;
+int spd1 = 0;
+int spd2 = 0;
+int accl = 1;
 
 // the setup function runs once when you press reset or power the board
 void setup() {
@@ -74,12 +80,96 @@ void loop() {
       mode = 0;
     }
   }
+  unsigned long currenttime = millis();
+  if ((currenttime -  lastAccelTime) > accl)
+  {
+    if (val1 >= 0) {
+      lastAccelTime = currenttime;
+      if (spd1 < val1) {
+        if((val1 -spd1) > 6)
+        {
+          spd1+=6;
+        }
+        else {
+          spd1++;
+        }
+        //Serial.print("Rijd met snelheid: ");
+        //Serial.println(spd1);
+        //drive1(spd1);
+      }
+      if (spd1 > val1) {
+        spd1 = val1;
+        //drive1(spd1);
+      }
+    }
+    else{
+      lastAccelTime = currenttime;
+      if (spd1 > val1) {
+        if((spd1 - val1) > 6)
+        {
+          spd1-=6;
+        }
+        else {
+          spd1--;
+        }
+        
+        //Serial.print("Rijd met snelheid: ");
+        //Serial.println(spd1);
+        //drive1(spd1);
+      }
+      if (spd1 < val1) {
+        spd1 = val1;
+        //drive1(spd1);
+      }
+    }
+
+    if (val2 >= 0) {
+      lastAccelTime = currenttime;
+      if (spd2 < val2) {
+        if((val2 -spd2) > 6)
+        {
+          spd2+=6;
+        }
+        else {
+          spd2++;
+        }
+        //Serial.print("Rijd met snelheid: ");
+        //Serial.println(spd1);
+        //drive2(spd2);
+      }
+      if (spd2 > val2) {
+        spd2 = val2;
+        //drive2(spd2);
+      }
+    }
+    else{
+      lastAccelTime = currenttime;
+      if (spd2 > val2) {
+        if((spd2 - val2) > 6)
+        {
+          spd2-=6;
+        }
+        else {
+          spd2--;
+        }
+        
+        //Serial.print("Rijd met snelheid: ");
+        //Serial.println(spd1);
+        //drive2(spd2);
+      }
+      if (spd2 < val2) {
+        spd2 = val2;
+        //drive1(spd2);
+      }
+    }
+  }
   if (Serial.available()) {
     savedTime = millis();
     int command = 0;
     int word1 = 0;
     int word2 = 0;
     readString = Serial.readStringUntil('\n');
+    Serial.println(readString);
     char received_buffer[40];
     readString.toCharArray(received_buffer, 40);
     char *p = received_buffer;
@@ -91,10 +181,12 @@ void loop() {
     command = atoi(strtok_r(p, ":", &p));
     word1 = atoi(strtok_r(p, ":", &p));
     word2 = atoi(strtok_r(p, ":", &p));
+    /*
     Serial.print("Command: ");
     Serial.print(command);
     Serial.print(" with argument : ");
     Serial.println(word1);
+    */
 
     //-----------------------------------------------------------------------------------------
     //- Basic stop command, the controller use Coasting braking to stop the motors            -
@@ -107,6 +199,10 @@ void loop() {
       analogWrite(pwm1_2, 0);
       analogWrite(pwm2_1, 0);
       analogWrite(pwm2_2, 0);
+      val1 = 0;
+      val2 = 0;
+      spd1 = 0;
+      spd2 = 0;
     }
 
     //-----------------------------------------------------------------------------------------
@@ -212,43 +308,11 @@ void loop() {
     }
 
     else if (command == 0x09) {
-      if (word1 < 0) {
-        if (mode9 == true) {
-          safeMode();
-        }
-        mode9 = false;
-        analogWrite(pwm1_1, 0);
-        analogWrite(pwm2_1, abs(word1));
-      }
-      else if (word1 >= 0) {
-        if (mode9 == false) {
-          safeMode();
-        }
-        mode9 = true;
-        analogWrite(pwm2_1, 0);
-        Serial.println(abs(word1));
-        analogWrite(pwm1_1, word1);
-      }
+      drive1(word1);
     }
 
     else if (command == 0x0A) {
-      if (word1 < 0) {
-        if (mode10 == true) {
-          safeMode();;
-        }
-        mode10 = false;
-        analogWrite(pwm1_2, 0);
-        analogWrite(pwm2_2, abs(word1));
-      }
-      else if (word1 >= 0) {
-        if (mode10 == false) {
-          safeMode();
-        }
-        mode10 = true;
-        Serial.println(abs(word1));
-        analogWrite(pwm2_2, 0);
-        analogWrite(pwm1_2, word1);
-      }
+      drive2(word1);
     }
     //-----------------------------------------------------------------------------------------
     //- Emergy stop command, the controller use Dynamic braking to stop the motors            -
@@ -286,4 +350,47 @@ void safeMode(void) {
   delayMicroseconds(5);
 }
 
+void drive1(int word1) {
+  if (word1 < 0) {
+    if (mode9 == true) {
+      safeMode();
+      delay(10);
+    }
+    mode9 = false;
+    analogWrite(pwm1_1, 0);
+    analogWrite(pwm2_1, abs(word1));
+  }
+  else if (word1 >= 0) {
+    if (mode9 == false) {
+      safeMode();
+      delay(10);
+    }
+    mode9 = true;
+    analogWrite(pwm2_1, 0);
+    analogWrite(pwm1_1, word1);
+  }
+  //delayMicroseconds(2000);
+}
+
+void drive2(int word1) {
+  if (word1 < 0) {
+    if (mode10 == true) {
+      safeMode();
+      delay(10);
+    }
+    mode10 = false;
+    analogWrite(pwm1_2, 0);
+    analogWrite(pwm2_2, abs(word1));
+  }
+  else if (word1 >= 0) {
+    if (mode10 == false) {
+      safeMode();
+      delay(10);
+    }
+    mode10 = true;
+    analogWrite(pwm2_2, 0);
+    analogWrite(pwm1_2, word1);
+  }
+  //delayMicroseconds(2000);
+}
 

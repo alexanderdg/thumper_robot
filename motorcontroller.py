@@ -22,6 +22,9 @@ class Motorcontroller:
 		self.my_thread.setDaemon(True)
 		self.my_thread.start()
 		self.print_serial = True
+		self.lastValueC9 = 0
+		self.lastValueC10 = 0
+		self.EmergyStopV = 0
 		print ("init method")
 
 	def close(self):
@@ -42,23 +45,28 @@ class Motorcontroller:
 	def stop(self):
 		data_to_send = "0\n"
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def forward(self, speed):
 		print("write to forward")
 		data_to_send = "1:{0}\n".format(str(speed))
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def reverse(self, speed):
 		data_to_send = "2:{0}\n".format(str(speed))
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def turnRight(self, speed):
 		data_to_send = "3:{0}\n".format(str(speed))
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def turnLeft(self, speed):
 		data_to_send = "4:{0}\n".format(str(speed))
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def acceleration(self, acceleration):
 		data_to_send = "5:{0}\n".format(str(acceleration))
@@ -71,26 +79,36 @@ class Motorcontroller:
 	def Motor1MC1(self, direction, speed):
 		data_to_send = "7:{0}:{1}\n".format(str(direction), str(speed))
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def Motor2MC1(self, direction, speed):
 		data_to_send = "8:{0}:{1}\n".format(str(direction), str(speed))
 		self.ser.write(data_to_send)
+		self.EmergyStopV = 0
 
 	def Motor1MC2(self, speed):
-		data_to_send = "9:{0}\n".format(str(speed))
-		self.ser.write(data_to_send)
+		if(self.lastValueC9 != speed or 1):
+			data_to_send = "9:{0}\n".format(str(speed))
+			self.lastValueC9 = speed
+			self.ser.write(data_to_send)
+			self.EmergyStopV = 0
 
 	def Motor2MC2(self, speed):
-		data_to_send = "10:{0}\n".format(str(speed))
-		self.ser.write(data_to_send)
+		if(self.lastValueC10 != speed or 1):
+			data_to_send = "10:{0}\n".format(str(speed))
+			self.lastValueC10 = speed
+			self.ser.write(data_to_send)
+			self.EmergyStopV = 0
 
 	def MotorYawComp(self, compensation):
 		data_to_send = "11:{0}\n".format(str(compensation))
 		self.ser.write(data_to_send)
 
 	def EmergyStop(self):
-		data_to_send = "12\n"
-		self.ser.write(data_to_send)
+		if self.EmergyStopV == 0:
+			data_to_send = "12:0\n"
+			self.ser.write(data_to_send)
+			self.EmergyStopV = 1
 
 	def UnsafeEmergyStop(self):
 		data_to_send = "13\n"
@@ -101,6 +119,16 @@ class Motorcontroller:
 
 	def setLoggingOn(self):
 		self.print_serial = True
+
+	def setServo1(self, pos):
+		if pos >= 0 and pos <= 180:
+			data_to_send = "14:{0}\n".format(str(pos))
+			self.ser.write(data_to_send)
+
+	def setServo2(self, pos):
+		if pos >= 0 and pos <= 180:
+			data_to_send = "15:{0}\n".format(str(pos))
+			self.ser.write(data_to_send)
 
 if __name__ == "__main__":
 	print "motortest"

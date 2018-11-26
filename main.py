@@ -26,6 +26,10 @@ class Serialcom(threading.Thread):
 		self.motor = Motorcontroller()
 		self.ser = serial.Serial('/dev/ttyS0', baudrate=115200, timeout=1)  # open serial port
 		self.joycalc = Joystick()
+		self.servo1 = 90
+		self.servo2 = 90
+		self.motor.setServo1(self.servo1)
+		self.motor.setServo2(self.servo2)
 
 	def calculateReg(self, level):
 		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
@@ -47,19 +51,24 @@ class Serialcom(threading.Thread):
 			if rcvdata != "":
 				try:
 					rcvdata_split = (rcvdata.split(':'))
-					print rcvdata_split
+					#print rcvdata_split
 					rcv1 = int(rcvdata_split[0])
 					rcv2 = int(rcvdata_split[1])
+					rcv3 = int(rcvdata_split[3])
+					rcv4 = int(rcvdata_split[4])
 					self.joycalc.calculate(rcv1, rcv2)
 					inttemp1 = self.joycalc.getM1()
 					inttemp2 = self.joycalc.getM2()
-					if inttemp1 > 248 and inttemp2 > 248:
+					if rcvdata_split[2] == "0":
+						self.motor.EmergyStop()
+
+					elif inttemp1 > 248 and inttemp2 > 248:
 						self.calculateReg(255)
 						self.motor.Motor1MC2(255 - 0)
 						self.motor.Motor2MC2(255 - 7)
 						#print "cor1: {}", format(255 - self.cor1)
 						#print "cor2: {}", format(255 - self.cor2)
-						#print "ride forward"
+						#print "ride forward with full speed"
 
 					elif (abs(inttemp1 - inttemp2) <= 3) and (inttemp1 > 50):
 						self.calculateReg(inttemp1)
@@ -69,15 +78,33 @@ class Serialcom(threading.Thread):
 					else:
 						self.motor.Motor1MC2(inttemp1)
 						self.motor.Motor2MC2(inttemp2)
-					#if temp1 == '1':
-					#	self.motor.Motor1MC2(temp2)
+						#print "other speeds"
 
+					if rcvdata_split[5] == "0":
+						self.servo1 = 90
+						self.motor.setServo1(self.servo1)
 
-					#if temp1 == '2':
-					#	self.motor.Motor2MC2(temp2)
+					elif rcv3 > 1000:
+						if(self.servo1 > 0):
+							self.servo1 = self.servo1 - 1
+							self.motor.setServo1(self.servo1)
+					elif rcv3 < 24:
+						if(self.servo1 < 180):
+							self.servo1 = self.servo1 + 1
+							self.motor.setServo1(self.servo1)
 
-					#self.motor.Motor1MC2(55)
-					#self.motor.Motor2MC2(55)
+					if rcvdata_split[5] == "0":
+						self.servo2 = 90
+						self.motor.setServo2(self.servo2)
+
+					elif rcv4 > 1000:
+						if(self.servo2 > 0):
+							self.servo2 = self.servo2 - 1
+							self.motor.setServo2(self.servo2)
+					elif rcv4 < 24:
+						if(self.servo2 < 180):
+							self.servo2 = self.servo2 + 1
+							self.motor.setServo2(self.servo2)
 
 				except ValueError, e:
 					print "JSON type error"
@@ -182,7 +209,7 @@ class Displaythread(threading.Thread):
 			if menu == 0:
 				self.display.printBatStatus()
 			elif menu == 1:
-				self.display.printDaignosctic()
+				self.display.printBatStatus()
 
 		# ... Clean shutdown code here ...
 		self.display.printCloseMessage()
