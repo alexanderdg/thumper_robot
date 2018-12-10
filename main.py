@@ -8,6 +8,7 @@ from motorcontroller import Motorcontroller
 from OA import OA
 from Display import Display
 from Joystick import Joystick
+from Buzzer import Buzzer
 #sudo nano /home/pi/.bashrc
 
 lowbatteryvoltage = 7.3
@@ -24,6 +25,7 @@ class Serialcom(threading.Thread):
 		threading.Thread.__init__(self)
 		self.shutdown_flag = threading.Event()
 		self.motor = Motorcontroller()
+		self.buzzer = Buzzer()
 		self.ser = serial.Serial('/dev/ttyS0', baudrate=115200, timeout=1)  # open serial port
 		self.adc = ADC()
 		self.joycalc = Joystick()
@@ -54,7 +56,7 @@ class Serialcom(threading.Thread):
 			currenttime = time.time()
 			if currenttime - self.lastSavedTime > 1.0:
 				self.lastSavedTime = time.time()
-				data_to_send = "1:{0}\n".format(str(self.adc.readVoltage()))
+				data_to_send = "{0}V {1}A&".format(str(round(self.adc.readVoltage(),2)), str(round(self.adc.readCurrent(),2)))
 				self.ser.write(data_to_send)
 			if rcvdata != "":
 				try:
@@ -69,6 +71,7 @@ class Serialcom(threading.Thread):
 					inttemp2 = self.joycalc.getM2()
 					if rcvdata_split[2] == "0":
 						self.motor.EmergyStop()
+						self.buzzer.beep(300)
 
 					elif inttemp1 > 248 and inttemp2 > 248:
 						self.calculateReg(255)
@@ -91,6 +94,7 @@ class Serialcom(threading.Thread):
 					if rcvdata_split[5] == "0":
 						self.servo1 = 96
 						self.motor.setServo1(self.servo1)
+						self.buzzer.beep(300)
 
 					elif rcv3 > 1000:
 						if(self.servo1 > 0):
@@ -116,6 +120,9 @@ class Serialcom(threading.Thread):
 
 				except ValueError, e:
 					print "JSON type error"
+
+				except IndexError, e:
+					print "Ontvangen data was het verkeerde formaat"
 			time.sleep(0.001)
 
 		# ... Clean shutdown code here ...
@@ -123,39 +130,6 @@ class Serialcom(threading.Thread):
 		self.motor.close()
 		print('Thread #%s stopped' % self.ident)
 
-	#def run(self):
-	#	print('Thread #%s started' % self.ident)
-	#	self.motor.timeout(1)
-	#	while not self.shutdown_flag.is_set():
-	#		rcvdata = self.ser.readline()
-	#		if rcvdata != "":
-	#			try:
-	#				parsed_json = json.loads(rcvdata)
-	#				self.motor.MotorYawComp(parsed_json['MotorYaw'])
-	#				if parsed_json['MotorMode'] == 0:
-	#					self.motor.stop()
-	#				elif parsed_json['MotorMode'] == 1:
-	#					self.motor.forward(parsed_json['MotorSpeed'])
-	#				elif parsed_json['MotorMode'] == 2:
-	#					self.motor.reverse(parsed_json['MotorSpeed'])
-	#				elif parsed_json['MotorMode'] == 3:
-	#					self.motor.turnLeft(parsed_json['MotorSpeed'])
-	#				elif parsed_json['MotorMode'] == 4:
-	#					self.motor.turnRight(parsed_json['MotorSpeed'])
-	#				elif parsed_json['MotorMode'] == 5:
-	#					self.motor.EmergyStop();
-	#				else:
-	#					self.motor.stop()
-
-
-	#			except ValueError, e:
-	#				print "JSON type error"
-	#		time.sleep(0.001)
-
-		# ... Clean shutdown code here ...
-	#	self.ser.close()
-	#	self.motor.close()
-	#	print('Thread #%s stopped' % self.ident)
 
 
 class Batterymonitor(threading.Thread):

@@ -7,6 +7,7 @@ class ADC:
 		print ("Starting Current en voltage measurments")
 		self.spi = MCP3208(0)
 		self.rgb = RGBled()
+		self.intRes = 0.0420
 
 	def __del__(self):
 		self.close
@@ -20,15 +21,20 @@ class ADC:
 		return current
 
 	def readVoltage(self):
+		batterycurrent = self.readCurrent()
+		dropout = (batterycurrent * batterycurrent) * self.intRes
 		a0 = 0
 		for x in range(0,10):
 			a0 += self.spi.read(0)
 		voltage = ((a0/10)/218.66)
+		#voltage += dropout
 		#print "voltage=%f" % voltage
 		return voltage
 
 	def updateLed(self):
 		batteryvoltage = self.readVoltage()
+		batterycurrent = self.readCurrent()
+		dropout = (batterycurrent * batterycurrent) * self.intRes
 		if batteryvoltage > 8.6:
 			self.rgb.set_red(0)
 			self.rgb.set_green(100)

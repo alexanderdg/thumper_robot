@@ -1,3 +1,4 @@
+import math
 
 class Joystick:
 	print("Open joystick calculator")
@@ -62,6 +63,10 @@ class Joystick:
 
 	def getM1(self):
 		return self.m1
+
+	def linToLog(self, lin):
+		output = math.log1p(lin + 1) / math.log1p(256) * 256
+		return output
 
 	def getM2(self):
 		return self.m2
