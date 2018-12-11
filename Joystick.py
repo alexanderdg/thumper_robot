@@ -13,6 +13,16 @@ class Joystick:
 	def valmap(self, value, istart, istop, ostart, ostop):
 		return (ostart + (float(ostop - ostart) * (float(value - istart) / float(istop - istart))))
 
+	def calculateReg(self, level):
+		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
+		if (regression >= 0) :
+			self.cor1 = 0
+			self.cor2 = regression
+		else:
+			self.cor1 = -regression
+			self.cor2 = 0
+		return regression
+
 	def calculate(self, jx, jy):
 		nJoyX = -self.valmap(jx, 0, 1023, -128, 127)
 		nJoyY = self.valmap(jy, 0, 1023, -128, 127)

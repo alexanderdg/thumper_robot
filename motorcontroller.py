@@ -27,6 +27,8 @@ class Motorcontroller:
 		self.lastMotorCom = 0
 		self.lastTimeComExc = 0
 		self.recall = 0
+		self.setServo1(96)
+		self.setServo2(75)
 		print ("init method")
 
 	def close(self):

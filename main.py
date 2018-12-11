@@ -1,132 +1,99 @@
-import serial
 import threading
 import time
 import signal
-import json
 from ADC import ADC
 from motorcontroller import Motorcontroller
 from OA import OA
 from Display import Display
-from Joystick import Joystick
 from Buzzer import Buzzer
+from Decoder import Decoder
+from xbee import Xbee
+from Joystick import Joystick
 #sudo nano /home/pi/.bashrc
 
 lowbatteryvoltage = 7.3
 
 keep_reading = 1
 
-
-
 class Serialcom(threading.Thread):
-	cor2 = 0
-	cor1 = 0
 
 	def __init__(self):
 		threading.Thread.__init__(self)
 		self.shutdown_flag = threading.Event()
 		self.motor = Motorcontroller()
 		self.buzzer = Buzzer()
-		self.ser = serial.Serial('/dev/ttyS0', baudrate=115200, timeout=1)  # open serial port
-		self.adc = ADC()
-		self.joycalc = Joystick()
+		self.xbee = Xbee()
+		self.decoder = Decoder()
 		self.servo1 = 96
 		self.servo2 = 75
+		self.joycalc = Joystick()
 		self.motor.setServo1(self.servo1)
 		self.motor.setServo2(self.servo2)
 		self.lastSavedTime = 0
-
-	def calculateReg(self, level):
-		regression = (int)((0.0008009 * pow(level, 2)) + (-0.171963 * level) - 0.7819);
-		if (regression >= 0) :
-			self.cor1 = 0
-			self.cor2 = regression
-		else:
-			self.cor1 = -regression
-			self.cor2 = 0
-		return regression
-
 
 
 	def run(self):
 		print('Thread #%s started' % self.ident)
 		self.motor.timeout(1)
 		while not self.shutdown_flag.is_set():
-			rcvdata = self.ser.readline()
+			rcvdata = self.xbee.read()
+			self.decoder.decode(rcvdata)
 			self.motor.recalCommand()
 			currenttime = time.time()
 			if currenttime - self.lastSavedTime > 1.0:
 				self.lastSavedTime = time.time()
-				data_to_send = "{0}V {1}A&".format(str(round(self.adc.readVoltage(),2)), str(round(self.adc.readCurrent(),2)))
-				self.ser.write(data_to_send)
-			if rcvdata != "":
-				try:
-					rcvdata_split = (rcvdata.split(':'))
-					#print rcvdata_split
-					rcv1 = int(rcvdata_split[0])
-					rcv2 = int(rcvdata_split[1])
-					rcv3 = int(rcvdata_split[3])
-					rcv4 = int(rcvdata_split[4])
-					self.joycalc.calculate(rcv1, rcv2)
-					inttemp1 = self.joycalc.getM1()
-					inttemp2 = self.joycalc.getM2()
-					if rcvdata_split[2] == "0":
-						self.motor.EmergyStop()
-						self.buzzer.beep(300)
+				self.xbee.sendBat()
+			if self.decoder.getStatus() and self.decoder.checkCRC():
+				if self.decoder.getJoyStickPB1() == 0:
+					self.motor.EmergyStop()
+					self.buzzer.beep(300)
 
-					elif inttemp1 > 248 and inttemp2 > 248:
-						self.calculateReg(255)
-						self.motor.Motor1MC2(255 - 0)
-						self.motor.Motor2MC2(255 - 7)
-						#print "cor1: {}", format(255 - self.cor1)
-						#print "cor2: {}", format(255 - self.cor2)
-						#print "ride forward with full speed"
+				elif self.decoder.getJoystickM1() > 248 and self.decoder.getJoystickM2() > 248:
+					self.joycalc.calculateReg(255)
+					self.motor.Motor1MC2(255 - self.joycalc.cor1)
+					self.motor.Motor2MC2(255 - self.joycalc.cor2)
 
-					elif (abs(inttemp1 - inttemp2) <= 3) and (inttemp1 > 50):
-						self.calculateReg(inttemp1)
-						self.motor.Motor1MC2(inttemp1 - self.cor1)
-						self.motor.Motor2MC2(inttemp1 - self.cor2)
-						#print "drive forward without full speed"
-					else:
-						self.motor.Motor1MC2(inttemp1)
-						self.motor.Motor2MC2(inttemp2)
-						#print "other speeds"
+				elif (abs(self.decoder.getJoystickM1() - self.decoder.getJoystickM2()) <= 3) and (self.decoder.getJoystickM1() > 50):
+					self.joycalc.calculateReg(self.decoder.getJoystickM1())
+					self.motor.Motor1MC2(self.decoder.getJoystickM1() - self.joycalc.cor1)
+					self.motor.Motor2MC2(self.decoder.getJoystickM1() - self.joycalc.cor2)
+					#print "drive forward without full speed"
+				else:
+					self.motor.Motor1MC2(self.decoder.getJoystickM1())
+					self.motor.Motor2MC2(self.decoder.getJoystickM2())
+					#print "other speeds"
 
-					if rcvdata_split[5] == "0":
-						self.servo1 = 96
+				if self.decoder.getJoystickPB2() == 0:
+					self.servo1 = 96
+					self.motor.setServo1(self.servo1)
+					self.buzzer.beep(300)
+
+				elif self.decoder.getJoystickVRX2() > 1000:
+					if(self.servo1 > 0):
+						self.servo1 = self.servo1 - 1
 						self.motor.setServo1(self.servo1)
-						self.buzzer.beep(300)
+				elif self.decoder.getJoystickVRX2() < 24:
+					if(self.servo1 < 180):
+						self.servo1 = self.servo1 + 1
+						self.motor.setServo1(self.servo1)
 
-					elif rcv3 > 1000:
-						if(self.servo1 > 0):
-							self.servo1 = self.servo1 - 1
-							self.motor.setServo1(self.servo1)
-					elif rcv3 < 24:
-						if(self.servo1 < 180):
-							self.servo1 = self.servo1 + 1
-							self.motor.setServo1(self.servo1)
+				if self.decoder.getJoystickPB2() == 0:
+					self.servo2 = 75
+					self.motor.setServo2(self.servo2)
 
-					if rcvdata_split[5] == "0":
-						self.servo2 = 75
+				elif self.decoder.joystick_VRY2 > 1000:
+					if(self.servo2 > 0):
+						self.servo2 = self.servo2 - 1
+						self.motor.setServo2(self.servo2)
+				elif self.decoder.getJoystickVRY2() < 24:
+					if(self.servo2 < 180):
+						self.servo2 = self.servo2 + 1
 						self.motor.setServo2(self.servo2)
 
-					elif rcv4 > 1000:
-						if(self.servo2 > 0):
-							self.servo2 = self.servo2 - 1
-							self.motor.setServo2(self.servo2)
-					elif rcv4 < 24:
-						if(self.servo2 < 180):
-							self.servo2 = self.servo2 + 1
-							self.motor.setServo2(self.servo2)
-
-				except ValueError, e:
-					print "JSON type error"
-
-				except IndexError, e:
-					print "Ontvangen data was het verkeerde formaat"
 			time.sleep(0.001)
 
 		# ... Clean shutdown code here ...
-		self.ser.close()
+		self.xbee.close()
 		self.motor.close()
 		print('Thread #%s stopped' % self.ident)
 
@@ -196,13 +163,6 @@ class Displaythread(threading.Thread):
 		# ... Clean shutdown code here ...
 		self.display.printCloseMessage()
 		print('Thread #%s stopped' % self.ident)
-
-
-
-
-
-
-
 
 
 class ServiceExit(Exception):
