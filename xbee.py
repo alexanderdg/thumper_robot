@@ -21,6 +21,6 @@ class Xbee:
 	def close(self):
 		self.ser.close()
 
-	def sendBat(self):
-		data_to_send = "{0}V {1}A&".format(str(round(self.adc.readVoltage(), 2)), str(round(self.adc.readCurrent(), 2)))
+	def sendBat(self, rfrating):
+		data_to_send = "{0:.2f}:{1:.2f}:{2:3d}&".format(round(self.adc.readVoltage(), 2), round(self.adc.readCurrent(), 2), rfrating)
 		self.write(data_to_send)

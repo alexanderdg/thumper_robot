@@ -13,6 +13,10 @@ class Decoder:
 		self.calcCRC = 0
 		self.rcvCRC = 0
 		self.status = 0
+		self.lastidd = 0
+		self.iddcounter = 0
+		self.rfrating = 0
+		self.temp = 0
 
 	def decode(self, rcvdata):
 		self.status = 0
@@ -25,10 +29,20 @@ class Decoder:
 				self.joystick_VRX2 = int(rcvdata_split[3])
 				self.joystick_VRY2 = int(rcvdata_split[4])
 				self.joystick_PB2 = int(rcvdata_split[5])
-				self.rcvCRC = int(rcvdata_split[6])
+				self.temp = int(rcvdata_split[6])
+				idd = int(rcvdata_split[6])
+				self.rcvCRC = int(rcvdata_split[7])
 				self.joycalc.calculate(self.getJoystickVRX1(), self.getJoystickVRY1())
 				self.calcCRC = self.joystick_VRX1 + self.joystick_VRY1 + self.joystick_PB1 + self.joystick_VRX2 + self.joystick_VRY2 + self.joystick_PB2
 				self.status = 1
+				if idd < self.lastidd:
+					self.rfrating = (self.iddcounter * 100) / 255
+					self.iddcounter = 0
+					self.lastidd = 0
+				else:
+					self.lastidd = idd
+					self.iddcounter = self.iddcounter + 1
+
 
 		except ValueError, e:
 			print "JSON type error"
@@ -73,3 +87,9 @@ class Decoder:
 
 	def getJoystickM2(self):
 		return self.joycalc.getM2()
+
+	def getIdd(self):
+		return self.iddcounter
+
+	def getRfrating(self):
+		return self.rfrating

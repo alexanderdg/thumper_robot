@@ -42,7 +42,7 @@ class Serialcom(threading.Thread):
 			currenttime = time.time()
 			if currenttime - self.lastSavedTime > 1.0:
 				self.lastSavedTime = time.time()
-				self.xbee.sendBat()
+				self.xbee.sendBat(self.decoder.getRfrating())
 			if self.decoder.getStatus() and self.decoder.checkCRC():
 				if self.decoder.getJoyStickPB1() == 0:
 					self.motor.EmergyStop()

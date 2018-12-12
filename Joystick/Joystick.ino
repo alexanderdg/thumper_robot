@@ -1,6 +1,7 @@
 #include <LiquidCrystal.h>
 #include <Wire.h>
 #include <EEPROM.h>
+#include <Filters.h>
 
 #define PCF_address B0111000
 // The different pushbuttons
@@ -20,6 +21,10 @@ bool laststate_menulu = false;
 bool laststate_menuld = false;
 bool laststate_menurd = false;
 bool laststate_menuru = false;
+bool password_bypass = false;
+
+float filtercutof = 5.0;
+String readString;
 
 int cnumber1, cnumber2, cnumber3, cnumber4 = 0;
 
@@ -32,7 +37,8 @@ int     nJoyY;
 int     nMotMixL;
 int     nMotMixR;
 float fPivYLimit = 32.0;
-const int cor1, cor2;
+const int cor1 = 0;
+const int cor2 = 0;
 const int sel = 2;
 const int led = 13;
 const int bl = 11;
@@ -43,16 +49,27 @@ unsigned long savedtime = 0;
 bool toggleled = false;
 bool togglebl = true;
 const int rs = 5, en = 6, d4 = 7, d5 = 8, d6 = 9, d7 = 10;
-LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
+uint8_t idd = 0;
+uint8_t count = 0;
+
+
 
 unsigned long lastPush = 0;
 
 int joy2x = A2;
 int joy2y = A3;
 
+float filterVal = 0.5;       // this determines smoothness  - .0001 is max  1 is off (no smoothing)
+float smoothedVal1;     // this holds the last loop value just use a unique variable for every different sensor that needs smoothing
+float smoothedVal2;
+
+
+FilterOnePole lowpassFilter( LOWPASS, filtercutof );
+LiquidCrystal lcd(rs, en, d4, d5, d6, d7);
 
 void setup() {
   Serial.begin(115200);
+  Serial.setTimeout(2);
   pinMode(sel, OUTPUT);
   pinMode(led, OUTPUT);
   pinMode(bl, OUTPUT);
@@ -70,7 +87,7 @@ void setup() {
 }
 
 void loop() {
-  if (!getPushButton(TOPL) and !getPushButton(TOPR) and !getPushButton(MENURD)) {
+  if ((!getPushButton(TOPL) and !getPushButton(TOPR) and !getPushButton(MENURD)) or password_bypass) {
     lcd.setCursor(0, 0);
     lcd.print("Password bypass!");
     delay(1000);
@@ -83,13 +100,18 @@ void loop() {
   delayMicroseconds(10);
   unsigned long savedtime2 = 0;
   while (true) {
+    int pot = analogRead(A7);
+    filterVal = pot / 1024.0;
+    readXbeedata();
     unsigned long currentTime = millis();
     if ((currentTime - savedtime) > 2000) {
       savedtime = currentTime;
       lcd.setCursor(0, 0);
       lcd.print("Bat: ");
       lcd.print(getBatteryVoltage());
-      lcd.print("V");
+      lcd.print("V ");
+      lcd.print(filterVal);
+      lcd.print("s");
     }
     currentTime = millis();
     if ((currentTime - savedtime2) > 10) {
@@ -105,19 +127,69 @@ float getBatteryVoltage(void) {
   return voltage;
 }
 
+void readXbeedata(void) {
+  String temp = Serial.readStringUntil('&');
+  if (temp != "") {
+    char received_buffer[40];
+    temp.toCharArray(received_buffer, 40);
+    char *p = received_buffer;
+    char *str;
+    String received_string(received_buffer);
+    float vbat = atof(strtok_r(p, ":", &p));
+    float ibat = atof(strtok_r(p, ":", &p));
+    int rfrating = atoi(strtok_r(p, ":", &p));
+    if (count > 10) {
+      lcd.setCursor(0,1);
+      lcd.print("                ");
+      count = 0;
+    } else {
+      count ++;
+    }
+    
+    lcd.setCursor(0, 1);
+    lcd.print(vbat);
+    lcd.print("V");
+    lcd.setCursor(6, 1);
+    lcd.print(ibat);
+    lcd.print("A");
+    if (rfrating == 100) {
+      lcd.setCursor(12, 1);
+    }
+    else {
+      lcd.setCursor(13, 1);
+    }
+    lcd.print(rfrating);
+    lcd.print("%");
+  }
+}
+
 void sendXbeedata(void) {
-  Serial.print(analogRead(VRX1));
+  int sVRX1 = analogRead(VRX1);
+  int sVRY1 = analogRead(VRY1);
+  int sVRX2 = analogRead(VRX2);
+  int sVRY2 = analogRead(VRY2);
+  smoothedVal1 =  smooth(sVRX1, filterVal, smoothedVal1);
+  smoothedVal2 =  smooth(sVRY1, filterVal, smoothedVal2);
+  int output1 = (int) smoothedVal1;
+  int output2 = (int) smoothedVal2;
+  int crc = output1 + output2 + digitalRead(sel1) + sVRX2 + sVRY2 + digitalRead(sel2);
+  Serial.print(output1);
   Serial.print(":");
-  Serial.print(analogRead(VRY1));
+  Serial.print(output2);
   Serial.print(":");
   Serial.print(digitalRead(sel1));
   Serial.print(":");
-  Serial.print(analogRead(VRX2));
+  Serial.print(sVRX2);
   Serial.print(":");
-  Serial.print(analogRead(VRY2));
+  Serial.print(sVRY2);
   Serial.print(":");
   Serial.print(digitalRead(sel2));
+  Serial.print(":");
+  Serial.print(idd);
+  Serial.print(":");
+  Serial.print(crc);
   Serial.println(":");
+  idd ++ ;
 }
 
 
@@ -380,5 +452,20 @@ void loadPassword(void) {
   cnumber2 = EEPROM.read(1);
   cnumber3 = EEPROM.read(2);
   cnumber4 = EEPROM.read(3);
+}
+
+int smooth(int data, float filterVal, float smoothedVal) {
+
+
+  if (filterVal > 1) {     // check to make sure param's are within range
+    filterVal = .99;
+  }
+  else if (filterVal <= 0) {
+    filterVal = 0;
+  }
+
+  smoothedVal = (data * (1 - filterVal)) + (smoothedVal  *  filterVal);
+
+  return (int)smoothedVal;
 }
 
